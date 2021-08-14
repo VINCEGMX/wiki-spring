@@ -1,3 +1,5 @@
+package com.example.wiki;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -18,6 +20,7 @@ public class dataEntry {
     private int revid;
     private int parentid;
     private boolean minor;
+    private String anon;
     private String user;
     private int userid;
     private Date timestamp;
@@ -25,4 +28,5 @@ public class dataEntry {
     private String sha1;
     private String parsedcomment;
     private String title;
+    private String usertype;
 }
