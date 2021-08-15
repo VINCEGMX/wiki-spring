@@ -18,4 +18,15 @@ public class queryController {
         this.dataRepo = dataRepo;
     }
 
+    @GetMapping(path = "/user{user}", produces="application/json")
+    public Iterable<dataEntry> allOrders(@PathVariable("user") String user) {
+        return dataRepo.findByUser(user);
+    }
+
+//    @GetMapping("/user{user}")
+//    public Iterable<dataEntry> findByUser(@PathVariable("user") String user){
+//        PageRequest page = PageRequest.of(
+//                0, 12, Sort.by("timestamp").descending());
+//        return dataRepo.findByuser(user, page).get;
+//    }
 }
