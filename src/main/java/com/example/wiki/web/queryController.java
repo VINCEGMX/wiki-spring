@@ -1,13 +1,15 @@
 package com.example.wiki.web;
 
+import com.example.wiki.dataEntry;
+import com.example.wiki.data.dataRepository;
 import com.example.wiki.showExNumArticleOutput;
+import com.example.wiki.showExRegArticleOutput;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
 import org.springframework.web.bind.annotation.*;
-
-import com.example.wiki.dataEntry;
-import com.example.wiki.data.dataRepository;
 
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
@@ -18,14 +20,11 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 
+
 import java.util.List;
 
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.group;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.limit;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
+
 
 
 @RestController
@@ -61,6 +60,24 @@ public class queryController {
 
         AggregationResults<showExNumArticleOutput> groupResults
                 = mt.aggregate(agg, dataEntry.class, showExNumArticleOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
+    @GetMapping(path = "/showExRegArticle/{num}", produces="application/json")
+    public Iterable<showExRegArticleOutput> showExRegArticle(@PathVariable("num") int num) {
+
+        Aggregation agg = newAggregation(
+                match(Criteria.where("usertype").in(new String[]{"admin", "regular"})),
+                group("title").addToSet("user").as("users"),
+                project().and("users").size().as("groupSize").and("title").previousOperation(),
+                sort(Sort.Direction.DESC, "groupSize"),
+                limit(num)
+
+        );
+
+        AggregationResults<showExRegArticleOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, showExRegArticleOutput.class);
 
         return groupResults.getMappedResults();
     }

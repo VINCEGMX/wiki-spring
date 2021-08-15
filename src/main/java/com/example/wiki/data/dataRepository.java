@@ -7,5 +7,4 @@ import com.example.wiki.dataEntry;
 import java.util.List;
 
 public interface dataRepository extends MongoRepository<dataEntry, String>{
-
 }
