@@ -1,5 +1,7 @@
 package com.example.wiki;
 
+import org.springframework.beans.CachedIntrospectionResults;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +13,13 @@ import java.util.*;
 
 import com.example.wiki.data.dataRepository;
 
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+
 @SpringBootApplication
 public class WikiApplication {
 
@@ -19,48 +28,33 @@ public class WikiApplication {
     }
 
     @Bean
-    public CommandLineRunner dataLoader(dataRepository repo) {
-        return new CommandLineRunner() {
-            @Override
-            public void run(String... args) throws Exception {
-                Set<String> bots = new HashSet<>();
-                Set<String> admins = new HashSet<>();
-                loadUserType("bots.txt", bots);
-                loadUserType("administrators.txt", admins);
+    public CommandLineRunner dataLoader(dataRepository repo, MongoTemplate mt) {
 
-                List<dataEntry> userWithNoUserType = repo.findByUsertypeIsNull();
-                System.out.println("num of users without usertype: "+userWithNoUserType.size());
-                if(userWithNoUserType.size()>0) {
-                    for (dataEntry uwnut : userWithNoUserType) {
-                        if (admins.contains(uwnut.getUser())) {
-                            uwnut.setUsertype("admin");
-                        }
+        return args -> {
 
-                        if (bots.contains(uwnut.getUser())) {
-                            uwnut.setUsertype("bot");
-                        }
+            loadUserType("bots.txt", "bots", mt);
+            loadUserType("administrators.txt", "admins", mt);
 
-                        repo.save(uwnut);
-                    }
+            Query query = new Query();
+            query.addCriteria(Criteria.where("usertype").exists(false).
+                    andOperator(Criteria.where("anon").exists(true)));
+            Update update = new Update();
+            update.set("usertype", "anon");
+            mt.updateMulti(query, update, dataEntry.class);
 
-                    List<dataEntry> userWithAnon = repo.findByAnonNotNull();
-                    for (dataEntry uwa : userWithAnon) {
-                        uwa.setUsertype("anon");
-                        repo.save(uwa);
-                    }
+            query = new Query();
+            query.addCriteria(Criteria.where("usertype").exists(false).
+                    andOperator(Criteria.where("anon").exists(false)));
+            update = new Update();
+            update.set("usertype", "regular");
+            mt.updateMulti(query, update, dataEntry.class);
 
-                    List<dataEntry> userWithNoUserTypeAndNoAnon = repo.findByUsertypeIsNullAndAnonIsNull();
-                    for (dataEntry de : userWithNoUserTypeAndNoAnon) {
-                        de.setUsertype("regular");
-                        repo.save(de);
-                    }
-                }
-                System.out.println("done!");
-            }
+            System.out.println("done!");
         };
     }
 
-    public void loadUserType(String path, Set<String> userGroup){
+    public void loadUserType(String path, String userType, MongoTemplate mt){
+        Set<String> userGroup = new HashSet<>();
         try {
             File myObj = new File(path);
             Scanner myReader = new Scanner(myObj);
@@ -73,6 +67,12 @@ public class WikiApplication {
             System.out.println("An error occurred.");
             e.printStackTrace();
         }
-    }
 
+        Query query = new Query();
+        query.addCriteria(Criteria.where("user").in(userGroup).
+                andOperator(Criteria.where("usertype").ne("bot")));
+        Update update = new Update();
+        update.set("usertype", userType);
+        mt.updateMulti(query, update, dataEntry.class);
+    }
 }
