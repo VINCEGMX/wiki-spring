@@ -2,13 +2,15 @@ package com.example.wiki.web;
 
 import com.example.wiki.dataEntry;
 import com.example.wiki.data.dataRepository;
+import com.example.wiki.showExHisArticleOutput;
 import com.example.wiki.showExNumArticleOutput;
 import com.example.wiki.showExRegArticleOutput;
 
+import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
+import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -17,10 +19,11 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
@@ -81,5 +84,25 @@ public class queryController {
 
         return groupResults.getMappedResults();
     }
+
+    @GetMapping(path = "/showExHisArticle/{num}", produces="application/json")
+    public Iterable<showExHisArticleOutput> showExHisArticle(@PathVariable("num") int num) {
+
+        String jsonExpression = "{\"$divide\":[{\"$subtract\":[\"$$NOW\",\"$minTime\"]},86400000]}";
+        Aggregation agg = newAggregation(
+                group("title").min("timestamp").as("minTime"),
+                project().and(context -> context.getMappedObject(Document.parse(jsonExpression))).as("age")
+                        .and("title").previousOperation(),
+                        sort(Sort.Direction.DESC, "age"),
+                        limit(num)
+        );
+
+        AggregationResults<showExHisArticleOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, showExHisArticleOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
+
 
 }
