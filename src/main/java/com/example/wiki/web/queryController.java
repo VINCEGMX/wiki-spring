@@ -264,6 +264,20 @@ public class queryController {
         return groupResults.getMappedResults();
     }
 
+    @GetMapping(path = "/autoComplete/{user}", produces="application/json")
+    public Iterable<autoCompleteOutput> autoComplete(@PathVariable("user") String user) {
+        Aggregation agg = newAggregation(
+                match(Criteria.where("user").regex('^' + user, "i")),
+                group("user"),
+                project().and("user").previousOperation(),
+                limit(5)
+        );
+
+        AggregationResults<autoCompleteOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, autoCompleteOutput.class);
+
+        return groupResults.getMappedResults();
+    }
 
 
 }
