@@ -1,10 +1,7 @@
 package com.example.wiki.web;
 
-import com.example.wiki.dataEntry;
+import com.example.wiki.*;
 import com.example.wiki.data.dataRepository;
-import com.example.wiki.showExHisArticleOutput;
-import com.example.wiki.showExNumArticleOutput;
-import com.example.wiki.showExRegArticleOutput;
 
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,6 +96,22 @@ public class queryController {
 
         AggregationResults<showExHisArticleOutput> groupResults
                 = mt.aggregate(agg, dataEntry.class, showExHisArticleOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
+    @GetMapping(path = "/revDisByUsertype", produces="application/json")
+    public Iterable<revDisByUsertypeOutput> revDisByUsertype() {
+
+        Aggregation agg = newAggregation(
+                group("usertype").count().as("usertypeCount"),
+                project("usertypeCount").and("usertype").previousOperation(),
+                sort(Sort.Direction.DESC, "usertypeCount")
+
+        );
+
+        AggregationResults<revDisByUsertypeOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, revDisByUsertypeOutput.class);
 
         return groupResults.getMappedResults();
     }
