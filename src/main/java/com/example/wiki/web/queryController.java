@@ -229,4 +229,24 @@ public class queryController {
         return groupResults.getMappedResults();
     }
 
+    /*
+    updateDB
+    redditPull
+     */
+
+    @GetMapping(path = "/artRevByUser/{user}", produces="application/json")
+    public Iterable<artRevByUserOutput> artRevByUser(@PathVariable("user") String user) {
+        Aggregation agg = newAggregation(
+                match(Criteria.where("user").is(user)),
+                group("title").count().as("revisionsByTitleByUser"),
+                project("revisionsByTitleByUser").and("title").previousOperation(),
+                sort(Sort.Direction.DESC, "revisionsByTitleByUser")
+        );
+
+        AggregationResults<artRevByUserOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, artRevByUserOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
 }
