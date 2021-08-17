@@ -196,4 +196,22 @@ public class queryController {
         return groupResults.getMappedResults();
     }
 
+    @GetMapping(path = "/revDisByYearTopRegUser/{title}&{user}", produces="application/json")
+    public Iterable<revDisByYearTopRegUserOutput> revDisByYearTopRegUser(@PathVariable("title") String title,
+                                                                          @PathVariable("user") String user) {
+        Aggregation agg = newAggregation(
+                project("title","user").and("timestamp").extractYear().as("year"),
+                match(Criteria.where("year").gte(fromYear).lte(toYear)
+                        .andOperator(Criteria.where("title").is(title), Criteria.where("user").is(user))),
+                group("year").count().as("userYearRevisions"),
+                project("userYearRevisions").and("year").previousOperation(),
+                sort(Sort.Direction.DESC, "userYearRevisions")
+        );
+
+        AggregationResults<revDisByYearTopRegUserOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, revDisByYearTopRegUserOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
 }
