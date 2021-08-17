@@ -249,4 +249,21 @@ public class queryController {
         return groupResults.getMappedResults();
     }
 
+    @GetMapping(path = "/revTimeByUser/{title}&{user}", produces="application/json")
+    public Iterable<revTimeByUserOutput> revTimeByUser(@PathVariable("title") String title,
+                                                       @PathVariable("user") String user) {
+        Aggregation agg = newAggregation(
+                match(Criteria.where("user").is(user).andOperator(Criteria.where("title").is(title))),
+                project("timestamp"),
+                sort(Sort.Direction.DESC, "timestamp")
+        );
+
+        AggregationResults<revTimeByUserOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, revTimeByUserOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
+
+
 }
