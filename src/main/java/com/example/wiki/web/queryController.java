@@ -103,6 +103,11 @@ public class queryController {
         return groupResults.getMappedResults();
     }
 
+    /*
+
+      @GetMapping(path = "/revsByUsertypeByYear", produces="application/json")
+    */
+
     @GetMapping(path = "/revDisByUsertype", produces="application/json")
     public Iterable<revDisByUsertypeOutput> revDisByUsertype() {
 
@@ -170,6 +175,25 @@ public class queryController {
         return groupResults.getMappedResults();
     }
 
+    /*
 
+      @GetMapping(path = "/revDisByYearByUsertypeArticle", produces="application/json")
+    */
+
+    @GetMapping(path = "/revDisByUsertypeArticle/{title}", produces="application/json")
+    public Iterable<revDisByUsertypeArticleOutput> revDisByUsertypeArticle(@PathVariable("title") String title) {
+        Aggregation agg = newAggregation(
+                project("title","usertype").and("timestamp").extractYear().as("year"),
+                match(Criteria.where("year").gte(fromYear).lte(toYear)
+                        .andOperator(Criteria.where("title").is(title))),
+                group("usertype").count().as("userTypeRevisions"),
+                project("userTypeRevisions").and("usertype").previousOperation()
+        );
+
+        AggregationResults<revDisByUsertypeArticleOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, revDisByUsertypeArticleOutput.class);
+
+        return groupResults.getMappedResults();
+    }
 
 }
