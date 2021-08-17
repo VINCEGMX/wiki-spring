@@ -33,6 +33,8 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 public class queryController {
     private dataRepository dataRepo;
     private MongoTemplate mt;
+    int fromYear = 2001;
+    int toYear = 2020;
 
     @Autowired
     public queryController(dataRepository dataRepo, MongoTemplate mt){
@@ -119,8 +121,6 @@ public class queryController {
 
     @GetMapping(path = "/totalRevTitle", produces="application/json")
     public Iterable<totalRevTitleOutput> totalRevTitle() {
-        int fromYear = 2001;
-        int toYear = 2020;
         Aggregation agg = newAggregation(
                 project("title").and("timestamp").extractYear().as("year"),
                 match(Criteria.where("year").gte(fromYear).andOperator(Criteria.where("year").lte(toYear))),
@@ -128,6 +128,22 @@ public class queryController {
                 project("totalRevisions").and("title").previousOperation(),
                 sort(Sort.Direction.DESC, "totalRevisions")
 
+        );
+
+        AggregationResults<totalRevTitleOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, totalRevTitleOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
+    @GetMapping(path = "/totalRevByTitle/{title}", produces="application/json")
+    public Iterable<totalRevTitleOutput> totalRevByTitle(@PathVariable("title") String title) {
+        Aggregation agg = newAggregation(
+                project("title").and("timestamp").extractYear().as("year"),
+                match(Criteria.where("year").gte(fromYear).lte(toYear)
+                        .andOperator(Criteria.where("title").is(title))),
+                group("title").count().as("totalRevisions"),
+                project("totalRevisions").and("title").previousOperation()
         );
 
         AggregationResults<totalRevTitleOutput> groupResults
