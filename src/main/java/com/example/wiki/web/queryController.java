@@ -152,6 +152,24 @@ public class queryController {
         return groupResults.getMappedResults();
     }
 
+    @GetMapping(path = "/topRegularUsers/{title}", produces="application/json")
+    public Iterable<topRegularUsersOutput> topRegularUsers(@PathVariable("title") String title) {
+        Aggregation agg = newAggregation(
+                project("title","usertype","user").and("timestamp").extractYear().as("year"),
+                match(Criteria.where("year").gte(fromYear).lte(toYear)
+                        .andOperator(Criteria.where("title").is(title), Criteria.where("usertype").is("regular"))),
+                group("user").count().as("userRevisions"),
+                project("userRevisions").and("user").previousOperation(),
+                sort(Sort.Direction.DESC, "userRevisions"),
+                limit(5)
+        );
+
+        AggregationResults<topRegularUsersOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, topRegularUsersOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
 
 
 }
