@@ -34,6 +34,7 @@ public class queryController {
     private dataRepository dataRepo;
     private MongoTemplate mt;
 
+    @Autowired
     public queryController(dataRepository dataRepo, MongoTemplate mt){
         this.dataRepo = dataRepo;
         this.mt = mt;
@@ -112,6 +113,25 @@ public class queryController {
 
         AggregationResults<revDisByUsertypeOutput> groupResults
                 = mt.aggregate(agg, dataEntry.class, revDisByUsertypeOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
+    @GetMapping(path = "/totalRevTitle", produces="application/json")
+    public Iterable<totalRevTitleOutput> totalRevTitle() {
+        int fromYear = 2001;
+        int toYear = 2020;
+        Aggregation agg = newAggregation(
+                project("title").and("timestamp").extractYear().as("year"),
+                match(Criteria.where("year").gte(fromYear).andOperator(Criteria.where("year").lte(toYear))),
+                group("title").count().as("totalRevisions"),
+                project("totalRevisions").and("title").previousOperation(),
+                sort(Sort.Direction.DESC, "totalRevisions")
+
+        );
+
+        AggregationResults<totalRevTitleOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, totalRevTitleOutput.class);
 
         return groupResults.getMappedResults();
     }
