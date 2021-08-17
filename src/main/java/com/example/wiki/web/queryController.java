@@ -214,4 +214,19 @@ public class queryController {
         return groupResults.getMappedResults();
     }
 
+    @GetMapping(path = "/lastTimeTitle/{title}", produces="application/json")
+    public Iterable<lastTimeTitleOutput> lastTimeTitle(@PathVariable("title") String title) {
+        Aggregation agg = newAggregation(
+                match(Criteria.where("title").is(title)),
+                project("timestamp"),
+                sort(Sort.Direction.DESC, "timestamp"),
+                limit(1)
+        );
+
+        AggregationResults<lastTimeTitleOutput> groupResults
+                = mt.aggregate(agg, dataEntry.class, lastTimeTitleOutput.class);
+
+        return groupResults.getMappedResults();
+    }
+
 }
